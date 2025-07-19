@@ -1,20 +1,27 @@
+import fetch from 'node-fetch'; // Required if fetch isn't global in your Vercel runtime
 import dotenv from 'dotenv';
+
 dotenv.config();
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    const { message } = req.body;
+
+    if (!message) {
+        return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+        return res.status(500).json({ error: 'Missing Telegram config in env' });
+    }
+
     try {
-        const { message } = req.body;
-
-        if (!message) {
-            return res.status(400).json({ error: 'Message is required' });
-        }
-
-        const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-        const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-
         const telegramResponse = await fetch(
             `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
             {
@@ -29,12 +36,12 @@ export default async function handler(req, res) {
         );
 
         const telegramData = await telegramResponse.json();
-        
+
         if (!telegramResponse.ok) {
             console.error('Telegram API error:', telegramData);
-            return res.status(500).json({ 
+            return res.status(500).json({
                 error: 'Failed to send to Telegram',
-                details: telegramData.description 
+                details: telegramData.description
             });
         }
 
